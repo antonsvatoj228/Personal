@@ -7,9 +7,11 @@ from names import *
 
 R_GRP, R_HEAD, R0 = 7, 8, 9              # групи колонок / шапка / перший рядок даних
 R1 = R0 + N_CAT - 1                      # 26
-WD0, WD1 = 4, 11                         # БУДНІ  D..K
-WE0, WE1 = 12, 19                        # ВИХІДНІ L..S
+WD0, WD1 = 4, 11                         # БУДНІ   D..K
+SPACER   = 12                            # колонка-роздільник L
+WE0, WE1 = 13, 20                        # ВИХІДНІ M..T
 HELP0 = 21                               # службові колонки з U
+GRP_END = (10, 15, 20)                   # останній рядок кожної групи категорій
 
 PKG_DESC = ('=IF($B$5="RO","Лише проживання.",'
             'IF($B$5="BB","Проживання + сніданок за кожного гостя.",'
@@ -59,12 +61,14 @@ def build(wb, data):
     for c,h in ((1,'Категорія'),(2,'Назва на Booking'),(3,'Група')):
         col_head(ws,f'{gl(c)}{R_HEAD}',h)
     for c in range(WD0,WE1+1):
+        if c == SPACER: continue
         n = (c - WD0 + 1) if c <= WD1 else (c - WE0 + 1)
         col_head(ws,f'{gl(c)}{R_HEAD}',n); ws[f'{gl(c)}{R_HEAD}'].number_format = '0'
     ws.row_dimensions[R_HEAD].height = 20
 
-    for w,c in zip([40,36,17],'ABC'): ws.column_dimensions[c].width = w
+    for w,c in zip([46,40,17],'ABC'): ws.column_dimensions[c].width = w
     for c in range(WD0,WE1+1): ws.column_dimensions[gl(c)].width = 12.5
+    ws.column_dimensions[gl(SPACER)].width = 2.6
 
     # глобальні службові клітинки
     g = {
@@ -152,6 +156,7 @@ def _rows(ws):
             ws[f'{key}{r}'].font = f(9, color='6B7771')
 
         for c in range(WD0, WE1+1):
+            if c == SPACER: continue
             wknd = c >= WE0
             nref = f'{gl(c)}${R_HEAD}'
             okc  = m['oke'] if wknd else m['okd']
@@ -164,6 +169,19 @@ def _rows(ws):
                 f'+${m["spa"]}{r}*(1-$U$5*$U$7))/ОКРУГЛЕННЯ,0)*ОКРУГЛЕННЯ)')
             out(ws, f'{gl(c)}{r}', None, MONEY, band=band)
             ws.cell(row=r, column=c).alignment = Alignment(horizontal='right')
+
+    # ── межі, що допомагають читати сітку ──
+    for r in range(R0, R1 + 1):
+        edge(ws, f'C{r}', right=True)                     # опис | ціни
+        edge(ws, f'{gl(WD1)}{r}', right=True)             # кінець буднів
+        edge(ws, f'{gl(WE0)}{r}', left=True)              # початок вихідних
+        if r in GRP_END:                                  # межа між групами категорій
+            for c in range(1, WE1 + 1):
+                if c == SPACER: continue
+                edge(ws, f'{gl(c)}{r}', bottom=True)
+    edge(ws, f'C{R_HEAD}', right=True)
+    edge(ws, f'{gl(WD1)}{R_HEAD}', right=True)
+    edge(ws, f'{gl(WE0)}{R_HEAD}', left=True)
 
     # базові категорії — виділення
     ws.conditional_formatting.add(f'A{R0}:C{R1}',

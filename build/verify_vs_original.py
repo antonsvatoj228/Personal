@@ -17,7 +17,7 @@ for i in range(18):
     for j in range(8):
         n = j+1
         got_b = P.cell(row=r, column=4+j).value
-        got_v = P.cell(row=r, column=12+j).value
+        got_v = P.cell(row=r, column=13+j).value
         exp_b = price_sheet(name, n, PL, PKG, 'Будні',   TAR)
         exp_v = price_sheet(name, n, PL, PKG, 'Вихідні', TAR)
         for got,exp,lab in ((got_b,exp_b,'будні'),(got_v,exp_v,'вих.')):

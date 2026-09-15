@@ -1,6 +1,7 @@
 from openpyxl.styles import Alignment
 from openpyxl.worksheet.datavalidation import DataValidation
 from style import *
+from openpyxl.styles import Border
 from names import *
 
 PKG_LIST  = ['RO','BB','BBSPA','ROSPA','ROSPABB']
@@ -22,7 +23,7 @@ def build(wb, data):
     for c,h in zip('ABCDE',['Прайс-лист','Дата з','Дата по','Статус','Примітка / оновлено']):
         col_head(ws,f'{c}5',h)
     ws.row_dimensions[5].height = 30
-    for w,c in zip([30,12,12,12,26],'ABCDE'):
+    for w,c in zip([34,12,12,12,26],'ABCDE'):
         ws.column_dimensions[c].width = w
 
     for i in range(N_PL):
@@ -136,6 +137,7 @@ def build(wb, data):
 
     # ── Блоки прайс-листів ─────────────────────────────────────────────────
     _blocks(ws, data)
+    _readability(ws)
 
     ws.freeze_panes = 'I5'
     ws.sheet_view.showGridLines = False
@@ -245,3 +247,58 @@ def _blocks(ws, data):
     for rng in (f'I{R_BASE0}:{LASTL}{R_BASE1}', f'I{R_MULT0}:{LASTL}{R_MULT1}',
                 f'I{R_PKG0}:{LASTL}{R_PKG1}', f'I{R_SPA0}:{LASTL}{R_SPA1}'):
         dv_pos.add(rng)
+
+
+# ═══════════════ ЧИТАБЕЛЬНІСТЬ ═══════════════
+SECTION_ROWS = (10, 17, 23, 31, 52, 59, 64)          # рядки-заголовки блоків
+GUTTER_ROWS  = (9, 16, 22, 30, 51, 58, 63, 69)       # порожні рядки-роздільники
+GRP_END      = (13, 34, 39, 44)                      # кінець групи: опорні / котеджі / Apartments A
+
+def _readability(ws):
+    last = LAST_COL
+
+    # 1. Технічний рядок 2 — прибираємо з поля зору
+    ws.row_dimensions[2].height = 10
+    label(ws, 'H2', 'технічний рядок — не редагувати')
+    ws['H2'].font = f(8, it=True, color='9AA6A0')
+
+    # 2. Смуга-заголовок секції на всю ширину листа
+    for r in SECTION_ROWS:
+        for c in range(9, last + 1):
+            cell = ws.cell(row=r, column=c)
+            cell.fill = fill(GREEN_M)
+            cell.border = Border(left=THIN, right=THIN, top=MED, bottom=MED)
+        ws.row_dimensions[r].height = 20
+
+    # 3. Порожні рядки між блоками читаються як провалля, а не як загублені дані
+    for r in GUTTER_ROWS:
+        gutter(ws, r, 8, last, height=9)
+
+    # 4. Вертикальні межі: кожен прайс-лист — окремий стовпчик
+    for i in range(N_PL):
+        c = pl_col(i)
+        for r in list(range(2, 9)) + list(range(10, 69)):
+            edge(ws, f'{col_letter(c)}{r}', left=True)
+
+    # 5. Горизонтальні межі між групами категорій
+    for r in GRP_END:
+        for c in range(8, last + 1):
+            edge(ws, f'{col_letter(c)}{r}', bottom=True)
+
+    # 6. Ліва таблиця: зебра + межа кожні 10 рядків
+    for i in range(N_PL):
+        r = R_PL0 + i
+        if i % 2 == 1:
+            for c in 'ABCDE':
+                ws[f'{c}{r}'].fill = fill(INPUT_ALT)
+        if (i + 1) % 10 == 0:
+            for c in 'ABCDE':
+                edge(ws, f'{c}{r}', bottom=True)
+    for r in range(R_PL0, R_PL_LAST + 1):
+        edge(ws, f'E{r}', right=True)
+    edge(ws, 'E5', right=True)
+
+    # 7. Блоки параметрів зліва — рамка знизу
+    for rng in (('F','G',10), ('F','G',R_TAR1), ('F','F',29), ('F','F',33), ('F','F',38)):
+        for c in ([rng[0]] if rng[0] == rng[1] else [rng[0], rng[1]]):
+            edge(ws, f'{c}{rng[2]}', bottom=True)

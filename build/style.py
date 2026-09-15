@@ -14,7 +14,28 @@ RED_SOFT  = "FCE8E4"       # базові категорії
 RED_INK   = "A8321E"
 
 THIN = Side(style="thin", color="C9D4CD")
+MED  = Side(style="medium", color="7E9488")     # межа блоку / групи
 BOX  = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
+BOX_L = Border(left=MED,  right=THIN, top=THIN, bottom=THIN)     # початок блоку прайс-листа
+BOX_B = Border(left=THIN, right=THIN, top=THIN, bottom=MED)      # кінець групи категорій
+BOX_LB= Border(left=MED,  right=THIN, top=THIN, bottom=MED)
+BOX_R = Border(left=THIN, right=MED,  top=THIN, bottom=THIN)     # кінець описових колонок
+BOX_RB= Border(left=THIN, right=MED,  top=THIN, bottom=MED)
+
+def edge(ws, cell, left=False, bottom=False, right=False):
+    """Додає товсту межу, зберігаючи наявні тонкі."""
+    b = ws[cell].border
+    ws[cell].border = Border(
+        left  = MED if left   else (b.left   or THIN),
+        right = MED if right  else (b.right  or THIN),
+        top   = b.top or THIN,
+        bottom= MED if bottom else (b.bottom or THIN))
+
+def gutter(ws, row, c0, c1, height=8):
+    """Порожній рядок-роздільник між блоками."""
+    ws.row_dimensions[row].height = height
+    for c in range(c0, c1 + 1):
+        ws.cell(row=row, column=c).fill = fill(GREEN_BAND)
 
 def fill(hexcolor):
     return PatternFill("solid", fgColor=hexcolor)
