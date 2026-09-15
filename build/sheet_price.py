@@ -49,7 +49,7 @@ def build(wb, data):
                 'IF($U$13=0,"⚠ У цьому прайс-листі ще не заповнені базові RO-ціни — сітка буде порожньою. '
                 'Заповніть його блок на листі «Керування прайсом».",'
                 '"Усі ціни — за ніч, за дорослих гостей, у гривні. Дитячі тарифи рахує лист «Калькулятор». '
-                'З 3-го гостя додається фіксований крок; вихідні рахуються через множник вихідних."))')
+                'Крок округлення діє на базову ціну за 1–2 особи; кожен наступний гість додає рівно крок за гостя × знижку."))')
     ws.conditional_formatting.add(f'A6:{gl(WE1)}6',
         FormulaRule(formula=['OR($U$3=0,$U$13=0)'], fill=fill(RED_SOFT), font=f(10,True,RED_INK), stopIfTrue=True))
 
@@ -162,11 +162,13 @@ def _rows(ws):
             okc  = m['oke'] if wknd else m['okd']
             pkg  = m['pkge'] if wknd else m['pkgd']
             core = (f'{m["ro"]}{r}*{m["mult"]}{r}' + (f'*{m["wmult"]}{r}' if wknd else ''))
+            # Округлення — лише на базову ціну 1–2 ос.; крок за гостя додається точно.
             ws.cell(row=r, column=c).value = (
                 f'=IF(OR(${okc}{r}=0,{nref}>${m["maxg"]}{r}),"",'
-                f'ROUND((({core}+MAX(0,{nref}-${m["incl"]}{r})*КРОК_ГОСТЯ)*(1-$U$5)'
+                f'ROUND({core}*(1-$U$5)/ОКРУГЛЕННЯ,0)*ОКРУГЛЕННЯ'
+                f'+MAX(0,{nref}-${m["incl"]}{r})*КРОК_ГОСТЯ*(1-$U$5)'
                 f'+{nref}*${pkg}{r}*(1-$U$5*$U$6)'
-                f'+${m["spa"]}{r}*(1-$U$5*$U$7))/ОКРУГЛЕННЯ,0)*ОКРУГЛЕННЯ)')
+                f'+${m["spa"]}{r}*(1-$U$5*$U$7))')
             out(ws, f'{gl(c)}{r}', None, MONEY, band=band)
             ws.cell(row=r, column=c).alignment = Alignment(horizontal='right')
 

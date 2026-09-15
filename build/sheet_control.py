@@ -131,9 +131,10 @@ def _price(start, tag, wknd, r):
     pk  = c['pk_v'] if wknd else c['pk_b']
     core = f'{c["ro"]}{r}*{c["mult"]}{r}' + (f'*{c["wmult"]}{r}' if wknd else '')
     return (f'=IF(OR({ok}{r}=0,{N_TOT}=0,{N_TOT}>{c["maxg"]}{r},{N_TOT}<{c["ming"]}{r}),"",'
-            f'ROUND((({core}+MAX(0,{N_TOT}-{c["incl"]}{r})*КРОК_ГОСТЯ)*(1-{H}$3)'
+            f'ROUND({core}*(1-{H}$3)/ОКРУГЛЕННЯ,0)*ОКРУГЛЕННЯ'
+            f'+MAX(0,{N_TOT}-{c["incl"]}{r})*КРОК_ГОСТЯ*(1-{H}$3)'
             f'+($D$4*{pa}{r}+$F$4*{pk}{r})*(1-{H}$3*{H}$4)'
-            f'+{c["spa"]}{r}*(1-{H}$3*{H}$5))/ОКРУГЛЕННЯ,0)*ОКРУГЛЕННЯ)')
+            f'+{c["spa"]}{r}*(1-{H}$3*{H}$5))')
 
 
 def _checklist(ws):
