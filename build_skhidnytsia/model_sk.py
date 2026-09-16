@@ -16,9 +16,10 @@ def load(path):
         if n: plcol.setdefault(n, c)
     basecat = {km.cell(row=r,column=8).value: i for i,r in enumerate(range(12,24)) if km.cell(row=r,column=8).value}
     baserow = {km.cell(row=r,column=8).value: r for r in range(12,24) if km.cell(row=r,column=8).value}
-    pkgr = {km.cell(row=r,column=8).value: r for r in range(58,62)}
-    spar = {km.cell(row=r,column=8).value: r for r in range(65,67)}
-    swr  = {'BB':70,'BBSPA':71,'SPA':72}
+    wmrow   = {km.cell(row=r,column=8).value: r for r in range(27,39) if km.cell(row=r,column=8).value}
+    pkgr = {km.cell(row=r,column=8).value: r for r in range(73,77)}
+    spar = {km.cell(row=r,column=8).value: r for r in range(80,82)}
+    swr  = {'BB':85,'BBSPA':86,'SPA':87}
     cat = {}
     for r in range(5,17):
         nm = dov.cell(row=r,column=2).value
@@ -29,7 +30,7 @@ def load(path):
     def val(r,c):
         v = km.cell(row=r,column=c).value
         return 0 if v in (None,'') else v
-    return dict(km=km, G=G, tariff=tariff, plcol=plcol, baserow=baserow,
+    return dict(km=km, G=G, tariff=tariff, plcol=plcol, baserow=baserow, wmrow=wmrow,
                 pkgr=pkgr, spar=spar, swr=swr, cat=cat, val=val)
 
 def price(M, catn, n, pl, pkg, day, tar, adults=None, kids=0):
@@ -38,7 +39,11 @@ def price(M, catn, n, pl, pkg, day, tar, adults=None, kids=0):
     if pl not in M['plcol'] or catn not in cat: return None
     c0, info = M['plcol'][pl], cat[catn]
     off = 1 if day == 'Вихідні' else 0
-    base = val(M['baserow'][catn], c0+off)
+    base = val(M['baserow'][catn], c0)
+    if day == 'Вихідні':
+        wm = val(M['wmrow'][catn], c0)
+        if wm == 0: return None
+        base = base * wm
     if n > info['mx'] or base == 0: return None
     need_pkg = pkg in ('BB','BBSPA','ROSPABB'); need_spa = pkg in ('ROSPA','ROSPABB')
     pa = pk = 0

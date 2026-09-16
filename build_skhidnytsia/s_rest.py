@@ -7,7 +7,7 @@ from names_s import *
 
 # ═════════ КОНТРОЛЬ І ПОРІВНЯННЯ ═════════
 KR0 = 7; KR1 = KR0 + N_CAT - 1
-HK = ['ro_b','ro_v','maxg','incl','ming','dopl_a','dopl_k','pa_b','pk_b','pa_v','pk_v','spa_b','spa_v','okd','oke']
+HK = ['ro_b','wm','ro_v','maxg','incl','ming','dopl_a','dopl_k','pa_b','pk_b','pa_v','pk_v','spa_b','spa_v','okd','oke']
 H1_0, H2_0 = 16, 34
 NTOT = '($D$4+$F$4)'
 def hc(start): return {k: gl(start+i) for i,k in enumerate(HK)}
@@ -74,7 +74,8 @@ def _khelp(ws, pl, tar, start):
     for i in range(N_CAT):
         r = KR0+i; m = f'MATCH($A{r},КАТЕГОРІЇ,0)'
         ws[f'{c["ro_b"]}{r}'] = f'=IF(OR({H}$2=0,$A{r}=""),0,IFERROR(INDEX(БАЗА_ЦІНИ,MATCH($A{r},БАЗА_КАТ,0),{H}$2),0))'
-        ws[f'{c["ro_v"]}{r}'] = f'=IF(OR({H}$2=0,$A{r}=""),0,IFERROR(INDEX(БАЗА_ЦІНИ,MATCH($A{r},БАЗА_КАТ,0),{H}$2+1),0))'
+        ws[f'{c["wm"]}{r}']   = f'=IF(OR({H}$2=0,$A{r}=""),0,IFERROR(INDEX(МНОЖ_ВИХ,MATCH($A{r},МНОЖ_КАТ,0),{H}$2),0))'
+        ws[f'{c["ro_v"]}{r}'] = f'={c["ro_b"]}{r}*{c["wm"]}{r}'
         ws[f'{c["maxg"]}{r}'] = f'=IF($A{r}="",0,IFERROR(INDEX(ДОВ_МАКС,{m}),0))'
         ws[f'{c["incl"]}{r}'] = f'=IF($A{r}="",0,IFERROR(INDEX(ДОВ_ВКЛ,{m}),0))'
         ws[f'{c["ming"]}{r}'] = f'=IF($A{r}="",0,IFERROR(INDEX(ДОВ_МІН,{m}),0))'
@@ -88,7 +89,7 @@ def _khelp(ws, pl, tar, start):
                                   f'MATCH(INDEX(ДОВ_SPA,{m}),SPA_РІВЕНЬ,0),{H}$2+{off}),0))')
         ws[f'{c["okd"]}{r}'] = (f'=IF(OR($A{r}="",{c["ro_b"]}{r}=0,AND($N$5=1,$D$4>0,{c["pa_b"]}{r}=0),'
                                 f'AND($N$5=1,$F$4>0,{c["pk_b"]}{r}=0),AND($N$7=1,{c["spa_b"]}{r}=0)),0,1)')
-        ws[f'{c["oke"]}{r}'] = (f'=IF(OR($A{r}="",{c["ro_v"]}{r}=0,AND($N$5=1,$D$4>0,{c["pa_v"]}{r}=0),'
+        ws[f'{c["oke"]}{r}'] = (f'=IF(OR($A{r}="",{c["ro_b"]}{r}=0,{c["wm"]}{r}=0,AND($N$5=1,$D$4>0,{c["pa_v"]}{r}=0),'
                                 f'AND($N$5=1,$F$4>0,{c["pk_v"]}{r}=0),AND($N$7=1,{c["spa_v"]}{r}=0)),0,1)')
         for k in c.values(): ws[f'{k}{r}'].font = f(9,color='6B7771')
 
@@ -151,16 +152,16 @@ def build_model(wb, data):
     title(ws,'A1','МОДЕЛЮВАННЯ ЦІН — ДВА СЦЕНАРІЇ У ПОРІВНЯННІ','A1:Q1')
     label(ws,'A3','Прайс-лист-основа',bold=True); inp(ws,'B3','0сінь 26 0-10%')
     dv = DataValidation(type='list',formula1='=ПРАЙС_ЛИСТИ',allow_blank=False); ws.add_data_validation(dv); dv.add('B3')
-    banner(ws,'A4','Жовті колонки — ввід базових RO-цін. Сценарії нічого не змінюють у діючому прайсі: щоб застосувати сценарій, '
+    banner(ws,'A4','Жовті колонки — ввід ціни буднього дня та множника вихідних. Сценарії нічого не змінюють у діючому прайсі: щоб застосувати сценарій, '
                    'скопіюйте його ціни у блок відповідного прайс-листа на «Керування прайсом». '
                    'Ціни показані за базовою місткістю категорії, без пакетів.','A4:Q4',34)
     GR = [(3,4,'ПОТОЧНО'),(5,8,'СЦЕНАРІЙ 1'),(9,12,'СЦЕНАРІЙ 2'),(13,14,'СЦЕНАРІЙ 2 vs 1')]
     for c0,c1,t in GR:
         block_head(ws,f'{gl(c0)}6',t,f'{gl(c0)}6:{gl(c1)}6')
         ws[f'{gl(c0)}6'].alignment = Alignment(horizontal='center',vertical='center')
-    HEAD = ['Категорія','Код','Будні, грн','Вихідні, грн',
-            'Будні, грн','Вихідні, грн','Δ грн буд.','Δ % буд.',
-            'Будні, грн','Вихідні, грн','Δ грн буд.','Δ % буд.','Δ грн буд.','Δ % буд.']
+    HEAD = ['Категорія','Код','Будні, грн','Множник вих.',
+            'Будні, грн','Множник вих.','Δ грн буд.','Δ % буд.',
+            'Будні, грн','Множник вих.','Δ грн буд.','Δ % буд.','Δ грн буд.','Δ % буд.']
     for i,h in enumerate(HEAD): col_head(ws,f'{gl(i+1)}7',h)
     ws.row_dimensions[7].height = 30
     for w,c in zip([30,10],'AB'): ws.column_dimensions[c].width = w
@@ -174,13 +175,13 @@ def build_model(wb, data):
         ws[f'A{r}'] = f"=IF('Довідник категорій'!B{dr}=\"\",\"\",'Довідник категорій'!B{dr})"
         ws[f'B{r}'] = f'=IF($A{r}="","",IFERROR(INDEX(ДОВ_КОД,{m}),""))'
         ws[f'C{r}'] = f'=IF(OR($S$2=0,$A{r}=""),"",IFERROR(INDEX(БАЗА_ЦІНИ,MATCH($A{r},БАЗА_КАТ,0),$S$2),""))'
-        ws[f'D{r}'] = f'=IF(OR($S$2=0,$A{r}=""),"",IFERROR(INDEX(БАЗА_ЦІНИ,MATCH($A{r},БАЗА_КАТ,0),$S$2+1),""))'
+        ws[f'D{r}'] = f'=IF(OR($S$2=0,$A{r}=""),"",IFERROR(INDEX(МНОЖ_ВИХ,MATCH($A{r},МНОЖ_КАТ,0),$S$2),""))'
         out(ws,f'A{r}',None,band=band); ws[f'A{r}'].font = f(b=True)
         out(ws,f'B{r}',None,band=band); ws[f'B{r}'].alignment = Alignment(horizontal='center')
-        out(ws,f'C{r}',None,MONEY,band=band); out(ws,f'D{r}',None,MONEY,band=band)
+        out(ws,f'C{r}',None,MONEY,band=band); out(ws,f'D{r}',None,MULT,band=band)
         for base,alt in ((5,False),(9,True)):
             cb,cv,cd,cp = (gl(base+k) for k in range(4))
-            inp(ws,f'{cb}{r}',None,MONEY,alt=alt); inp(ws,f'{cv}{r}',None,MONEY,alt=alt)
+            inp(ws,f'{cb}{r}',None,MONEY,alt=alt); inp(ws,f'{cv}{r}',None,MULT,alt=alt)
             ws[f'{cd}{r}'] = f'=IF(OR({cb}{r}="",$C{r}=""),"",{cb}{r}-$C{r})'
             ws[f'{cp}{r}'] = f'=IF(OR({cb}{r}="",$C{r}="",$C{r}=0),"",{cb}{r}/$C{r}-1)'
             out(ws,f'{cd}{r}',None,MONEY,band=band); out(ws,f'{cp}{r}',None,PCT,band=band)
@@ -203,16 +204,16 @@ def build_model(wb, data):
 def build_base(wb, data):
     ws = wb.create_sheet('Базові ціни')
     R0 = 7; R1 = R0 + N_CAT - 1
-    title(ws,'A1','БАЗОВІ ЦІНИ — ПЕРЕГЛЯД АКТИВНОГО ПРАЙСУ','A1:G1')
+    title(ws,'A1','БАЗОВІ ЦІНИ — ПЕРЕГЛЯД АКТИВНОГО ПРАЙСУ','A1:H1')
     label(ws,'A3','Активний прайс-лист',bold=True)
     ws['B3'] = "='Прайс'!$B$3"; ws['B3'].fill = fill(GREEN_PL); ws['B3'].font = f(b=True,color=GREEN_D)
-    banner(ws,'A4','Усі категорії Східниці — базові: кожна має власну RO-ціну на будні та вихідні. '
-                   'Редагування — на «Керування прайсом».','A4:G4',26)
-    for i,h in enumerate(['Категорія','Код','RO будні, грн','RO вихідні, грн','Δ буд.→вих., грн',
-                          'Включено у базову','Макс. гостей']):
+    banner(ws,'A4','Усі категорії Східниці — базові: кожна має власну RO-ціну буднього дня. '
+                   'Ціна вихідних рахується множником. Редагування — на «Керування прайсом».','A4:H4',26)
+    for i,h in enumerate(['Категорія','Код','RO будні, грн','Множник вихідних','RO вихідні, грн',
+                          'Δ буд.→вих., грн','Включено у базову','Макс. гостей']):
         col_head(ws,f'{gl(i+1)}6',h)
     ws.row_dimensions[6].height = 30
-    for w,c in zip([30,10,15,16,17,17,14],'ABCDEFG'): ws.column_dimensions[c].width = w
+    for w,c in zip([30,10,15,16,16,17,17,14],'ABCDEFGH'): ws.column_dimensions[c].width = w
     ws['I2'] = "=IFERROR(MATCH('Прайс'!$B$3,ПЛ_РЯДОК,0),0)"; ws['I2'].font = f(9,color='6B7771')
     ws.column_dimensions['I'].hidden = True
     for i in range(N_CAT):
@@ -221,14 +222,15 @@ def build_base(wb, data):
         ws[f'A{r}'] = f"=IF('Довідник категорій'!B{dr}=\"\",\"\",'Довідник категорій'!B{dr})"
         ws[f'B{r}'] = f'=IF($A{r}="","",IFERROR(INDEX(ДОВ_КОД,{m}),""))'
         ws[f'C{r}'] = f'=IF(OR($I$2=0,$A{r}=""),"",IFERROR(INDEX(БАЗА_ЦІНИ,MATCH($A{r},БАЗА_КАТ,0),$I$2),""))'
-        ws[f'D{r}'] = f'=IF(OR($I$2=0,$A{r}=""),"",IFERROR(INDEX(БАЗА_ЦІНИ,MATCH($A{r},БАЗА_КАТ,0),$I$2+1),""))'
-        ws[f'E{r}'] = f'=IF(OR($C{r}="",$D{r}=""),"",$D{r}-$C{r})'
-        ws[f'F{r}'] = f'=IF($A{r}="","",IFERROR(INDEX(ДОВ_ВКЛ,{m}),""))'
-        ws[f'G{r}'] = f'=IF($A{r}="","",IFERROR(INDEX(ДОВ_МАКС,{m}),""))'
+        ws[f'D{r}'] = f'=IF(OR($I$2=0,$A{r}=""),"",IFERROR(INDEX(МНОЖ_ВИХ,MATCH($A{r},МНОЖ_КАТ,0),$I$2),""))'
+        ws[f'E{r}'] = f'=IF(OR($C{r}="",$D{r}=""),"",ROUND($C{r}*$D{r}/ОКРУГЛЕННЯ,0)*ОКРУГЛЕННЯ)'
+        ws[f'F{r}'] = f'=IF(OR($C{r}="",$E{r}=""),"",$E{r}-$C{r})'
+        ws[f'G{r}'] = f'=IF($A{r}="","",IFERROR(INDEX(ДОВ_ВКЛ,{m}),""))'
+        ws[f'H{r}'] = f'=IF($A{r}="","",IFERROR(INDEX(ДОВ_МАКС,{m}),""))'
         out(ws,f'A{r}',None,band=band); ws[f'A{r}'].font = f(b=True)
-        for c,fmt in (('B',None),('C',MONEY),('D',MONEY),('E',MONEY),('F','0'),('G','0')):
+        for c,fmt in (('B',None),('C',MONEY),('D',MULT),('E',MONEY),('F',MONEY),('G','0'),('H','0')):
             out(ws,f'{c}{r}',None,fmt,band=band)
-            if c in ('B','F','G'): ws[f'{c}{r}'].alignment = Alignment(horizontal='center')
+            if c in ('B','G','H'): ws[f'{c}{r}'].alignment = Alignment(horizontal='center')
     ws.freeze_panes = f'C{R0}'; ws.sheet_view.showGridLines = False
     return ws
 

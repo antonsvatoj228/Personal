@@ -90,21 +90,24 @@ def build(wb, data):
     block_head(ws,f'H{SECTION_ROWS[0]}','БАЗОВІ RO-ЦІНИ — ЗА БАЗОВОЮ МІСТКІСТЮ КАТЕГОРІЇ')
     col_head(ws,f'H{R_BASE0-1}','Категорія')
     _cat_labels(ws, R_BASE0)
-    block_head(ws,f'H{SECTION_ROWS[1]}','Δ МІЖ КАТЕГОРІЯМИ  (варіант A)')
+    block_head(ws,f'H{SECTION_ROWS[1]}','МНОЖНИКИ ВИХІДНОГО ДНЯ')
+    col_head(ws,f'H{R_WM0-1}','Категорія')
+    _cat_labels(ws, R_WM0)
+    block_head(ws,f'H{SECTION_ROWS[2]}','Δ МІЖ КАТЕГОРІЯМИ  (варіант A)')
     col_head(ws,f'H{R_DA0-1}','Порівняння з попередньою категорією')
     _cat_labels(ws, R_DA0, prev=True)
-    block_head(ws,f'H{SECTION_ROWS[2]}','Δ ДО ЕТАЛОННОГО ПРАЙС-ЛИСТА  (варіант B)')
+    block_head(ws,f'H{SECTION_ROWS[3]}','Δ ДО ЕТАЛОННОГО ПРАЙС-ЛИСТА  (варіант B)')
     ws[f'H{R_DB0-2}'] = '=IF(ЕТАЛОН_ПЛ="","еталон не обрано — задайте G9","Еталон: "&ЕТАЛОН_ПЛ)'
     ws[f'H{R_DB0-2}'].font = f(10,it=True,color=GREEN_D); ws[f'H{R_DB0-2}'].fill = fill(GREEN_PL)
     col_head(ws,f'H{R_DB0-1}','Категорія')
     _cat_labels(ws, R_DB0)
-    block_head(ws,f'H{SECTION_ROWS[3]}','ПАКЕТИ BB / BBSPA — ЗА 1 ГОСТЯ')
+    block_head(ws,f'H{SECTION_ROWS[4]}','ПАКЕТИ BB / BBSPA — ЗА 1 ГОСТЯ')
     col_head(ws,f'H{R_PKG0-1}','Пакет / тип дня')
     for i,n in enumerate(data['pkgkeys']): out(ws,f'H{R_PKG0+i}',n,bold=True)
-    block_head(ws,f'H{SECTION_ROWS[4]}',"ФІКСОВАНИЙ SPA-ВІЗИТ ДЛЯ ROSPA / ROSPABB — 1 ОД. НА ОБ'ЄКТ")
+    block_head(ws,f'H{SECTION_ROWS[5]}',"ФІКСОВАНИЙ SPA-ВІЗИТ ДЛЯ ROSPA / ROSPABB — 1 ОД. НА ОБ'ЄКТ")
     col_head(ws,f'H{R_SPA0-1}','SPA-рівень')
     for i,n in enumerate(SPA_LEVELS): out(ws,f'H{R_SPA0+i}',n,bold=True)
-    block_head(ws,f'H{SECTION_ROWS[5]}','ПЕРЕМИКАЧІ ЗНИЖКИ   (1 = знижка тарифу діє, 0 = не діє)')
+    block_head(ws,f'H{SECTION_ROWS[6]}','ПЕРЕМИКАЧІ ЗНИЖКИ   (1 = знижка тарифу діє, 0 = не діє)')
     col_head(ws,f'H{R_SW0-1}','На що діє знижка тарифу')
     for i,n in enumerate(SW_LABELS): out(ws,f'H{R_SW0+i}',n)
     label(ws,f'H{GUTTER_ROWS[-1]+1}',
@@ -166,12 +169,25 @@ def _blocks(ws, data):
             ws[f'{L}{rr}'].alignment = Alignment(vertical='center',horizontal='center')
             ws.merge_cells(f'{L}{rr}:{L2}{rr}')
 
-        # базові RO-ціни
-        col_head(ws,f'{L}{R_BASE0-1}','RO будні'); col_head(ws,f'{L2}{R_BASE0-1}','RO вихідні')
+        # базові RO-ціни: будні — ввід, вихідні — з множника
+        col_head(ws,f'{L}{R_BASE0-1}','RO будні'); col_head(ws,f'{L2}{R_BASE0-1}','RO вихідні\n(авто)')
         for j in range(N_CAT):
-            rr = R_BASE0 + j
+            rr, wr = R_BASE0 + j, R_WM0 + j
             b = src['base'][j] if (src and j < len(src['base'])) else (None,None)
-            inp(ws,f'{L}{rr}', b[0], MONEY); inp(ws,f'{L2}{rr}', b[1], MONEY)
+            inp(ws,f'{L}{rr}', b[0], MONEY)
+            ws[f'{L2}{rr}'] = (f'=IF(OR({L}{rr}="",{L}{wr}=""),"",'
+                               f'ROUND({L}{rr}*{L}{wr}/ОКРУГЛЕННЯ,0)*ОКРУГЛЕННЯ)')
+            out(ws,f'{L2}{rr}',None,MONEY,band=True)
+
+        # множники вихідного дня
+        col_head(ws,f'{L}{R_WM0-1}','Множник вихідних'); col_head(ws,f'{L2}{R_WM0-1}','Δ буд.→вих., грн')
+        for j in range(N_CAT):
+            wr, rr = R_WM0 + j, R_BASE0 + j
+            b = src['base'][j] if (src and j < len(src['base'])) else (None,None)
+            mult = round(b[1]/b[0], 4) if (b[0] and b[1]) else None
+            inp(ws,f'{L}{wr}', mult, MULT)
+            ws[f'{L2}{wr}'] = f'=IF(OR({L2}{rr}="",{L}{rr}=""),"",{L2}{rr}-{L}{rr})'
+            out(ws,f'{L2}{wr}',None,MONEY,band=True)
 
         # Δ між категоріями
         col_head(ws,f'{L}{R_DA0-1}','Δ грн'); col_head(ws,f'{L2}{R_DA0-1}','Δ %')

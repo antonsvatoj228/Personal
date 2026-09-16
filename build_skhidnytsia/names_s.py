@@ -8,16 +8,17 @@ R_TECH = 2
 R_PL0 = 6
 R_PL_LAST = R_PL0 + N_PL - 1           # 105
 R_BLK_NAME, R_BLK_PERIOD, R_BLK_STATUS, R_BLK_UPD = 5, 6, 7, 8
-R_BASE0 = 12;  R_BASE1 = R_BASE0 + N_CAT - 1     # 12..23
-R_DA0   = 27;  R_DA1   = R_DA0 + N_CAT - 1       # 27..38
-R_DB0   = 43;  R_DB1   = R_DB0 + N_CAT - 1       # 43..54
-R_PKG0, R_PKG1 = 58, 61
-R_SPA0, R_SPA1 = 65, 66
-R_SW0,  R_SW1  = 70, 72
+R_BASE0 = 12;  R_BASE1 = R_BASE0 + N_CAT - 1     # 12..23  RO будні / RO вихідні (авто)
+R_WM0   = 27;  R_WM1   = R_WM0 + N_CAT - 1       # 27..38  множники вихідних
+R_DA0   = 42;  R_DA1   = R_DA0 + N_CAT - 1       # 42..53
+R_DB0   = 58;  R_DB1   = R_DB0 + N_CAT - 1       # 58..69
+R_PKG0, R_PKG1 = 73, 76
+R_SPA0, R_SPA1 = 80, 81
+R_SW0,  R_SW1  = 85, 87
 R_TAR0 = 14; R_TAR1 = R_TAR0 + N_TAR - 1         # 14..21
 
-SECTION_ROWS = (10, 25, 40, 56, 63, 68)
-GUTTER_ROWS  = (9, 24, 39, 55, 62, 67, 73)
+SECTION_ROWS = (10, 25, 40, 55, 71, 78, 83)
+GUTTER_ROWS  = (9, 24, 39, 54, 70, 77, 82, 88)
 
 KM = "'Керування прайсом'"
 DK = "'Довідник категорій'"
@@ -38,6 +39,8 @@ DEFINED = {
     'ПЛ_РЯДОК':       f'{KM}!$I${R_TECH}:${LASTL}${R_TECH}',
     'БАЗА_ЦІНИ':      f'{KM}!$I${R_BASE0}:${LASTL}${R_BASE1}',
     'БАЗА_КАТ':       f'{KM}!$H${R_BASE0}:$H${R_BASE1}',
+    'МНОЖ_ВИХ':       f'{KM}!$I${R_WM0}:${LASTL}${R_WM1}',
+    'МНОЖ_КАТ':       f'{KM}!$H${R_WM0}:$H${R_WM1}',
     'ПАКЕТИ_ЦІНИ':    f'{KM}!$I${R_PKG0}:${LASTL}${R_PKG1}',
     'ПАКЕТИ_КЛЮЧ':    f'{KM}!$H${R_PKG0}:$H${R_PKG1}',
     'SPA_ЦІНИ':       f'{KM}!$I${R_SPA0}:${LASTL}${R_SPA1}',

@@ -39,14 +39,15 @@ def build(wb, data):
     rows = [
       (6,'Статус',
        '=IF(OR($B$6="",$B$8="",$U$3=0,F7<F8,F7>F10,F11=0,'
+       'AND($B$9="Вихідні",F25=0),'
        'AND($U$8=1,OR(AND($B$10>0,F18=0),AND($B$11>0,F19=0))),AND($U$9=1,F20=0)),'
        '"ПЕРЕВІРТЕ ПАРАМЕТРИ","OK")',None),
       (7,'Усього гостей','=$B$10+$B$11','0'),
       (8,'Мін. гостей',f'=IFERROR(INDEX(ДОВ_МІН,{M}),0)','0'),
       (9,'Включено у базову ціну',f'=IFERROR(INDEX(ДОВ_ВКЛ,{M}),0)','0'),
       (10,'Макс. гостей',f'=IFERROR(INDEX(ДОВ_МАКС,{M}),0)','0'),
-      (11,'RO база за типом дня, грн',
-       '=IF($U$3=0,0,IFERROR(INDEX(БАЗА_ЦІНИ,MATCH($B$8,БАЗА_КАТ,0),$U$3+IF($B$9="Вихідні",1,0)),0))',MONEY),
+      (11,'RO база буднього дня, грн',
+       '=IF($U$3=0,0,IFERROR(INDEX(БАЗА_ЦІНИ,MATCH($B$8,БАЗА_КАТ,0),$U$3),0))',MONEY),
       (12,'Додаткових дорослих','=MAX(0,$B$10-F9)','0'),
       (13,'Додаткових дітей','=MAX(0,F7-F9)-F12','0'),
       (14,'Доплата за додаткові місця, грн',
@@ -62,7 +63,7 @@ def build(wb, data):
        f'=IF(OR($U$3=0,$U$9=0),0,IFERROR(INDEX(SPA_ЦІНИ,MATCH(INDEX(ДОВ_SPA,{M}),SPA_РІВЕНЬ,0),'
        '$U$3+IF($B$9="Вихідні",1,0)),0))',MONEY),
       (21,'Проживання з тваринами, грн','=$B$13*ТВАРИНИ',MONEY),
-      (22,'Проживання за базовою місткістю до знижки, грн','=F11','#,##0.00'),
+      (22,'Проживання за базовою місткістю до знижки, грн','=F11*IF($B$9="Вихідні",F25,1)','#,##0.00'),
       (23,'ЦІНА ЗА НІЧ, грн',
        '=IF($F$6<>"OK","",ROUND(F22*(1-F15)/ОКРУГЛЕННЯ,0)*ОКРУГЛЕННЯ'
        '+F14*(1-F15)+($B$10*F18+$B$11*F19)*(1-F15*F16)+F20*(1-F15*F17)+F21)',MONEY),
@@ -79,15 +80,18 @@ def build(wb, data):
     ws.conditional_formatting.add('F6', FormulaRule(formula=['$F$6<>"OK"'],
         fill=fill(RED_SOFT), font=f(11,True,RED_INK), stopIfTrue=True))
 
-    block_head(ws,'D26','ПІДКАЗКА ЗА ДАТОЮ ЗАЇЗДУ','D26:F26')
-    label(ws,'D27','Прайс-лист, що покриває дату',wrap=True)
-    ws['F27'] = ('=IF($B$15="","",IFERROR(INDEX(ПРАЙС_ЛИСТИ,SUMPRODUCT(MAX((ПЛ_ДАТА_З<=$B$15)*(ПЛ_ДАТА_ПО>=$B$15)'
+    label(ws,'D25','Множник вихідних',wrap=True)
+    ws['F25'] = '=IF($U$3=0,0,IFERROR(INDEX(МНОЖ_ВИХ,MATCH($B$8,МНОЖ_КАТ,0),$U$3),0))'
+    out(ws,'F25',None,MULT)
+    block_head(ws,'D27','ПІДКАЗКА ЗА ДАТОЮ ЗАЇЗДУ','D27:F27')
+    label(ws,'D28','Прайс-лист, що покриває дату',wrap=True)
+    ws['F28'] = ('=IF($B$15="","",IFERROR(INDEX(ПРАЙС_ЛИСТИ,SUMPRODUCT(MAX((ПЛ_ДАТА_З<=$B$15)*(ПЛ_ДАТА_ПО>=$B$15)'
                  '*(ПЛ_СТАТУС="Активний")*(ПРАЙС_ЛИСТИ<>"")*ROW(ПРАЙС_ЛИСТИ)))-' + str(R_PL0-1) + '),"— не знайдено —"))')
-    label(ws,'D28','Тип дня за датою',wrap=True)
-    ws['F28'] = '=IF($B$15="","",IF(WEEKDAY($B$15,2)>=ПЕРШИЙ_ВИХІДНИЙ,"Вихідні","Будні"))'
-    for r in (27,28): out(ws,f'F{r}',None,band=True)
-    label(ws,'D29','Підказка не змінює розрахунок — прайс-лист і тип дня обираються вручну вище.')
-    ws['D29'].font = f(9,it=True,color='6B7771'); ws.merge_cells('D29:F29')
+    label(ws,'D29','Тип дня за датою',wrap=True)
+    ws['F29'] = '=IF($B$15="","",IF(WEEKDAY($B$15,2)>=ПЕРШИЙ_ВИХІДНИЙ,"Вихідні","Будні"))'
+    for r in (28,29): out(ws,f'F{r}',None,band=True)
+    label(ws,'D30','Підказка не змінює розрахунок — прайс-лист і тип дня обираються вручну вище.')
+    ws['D30'].font = f(9,it=True,color='6B7771'); ws.merge_cells('D30:F30')
 
     for r,fml,lab in ((3,'=IFERROR(MATCH($B$6,ПЛ_РЯДОК,0),0)','колонка прайс-листа'),
                       (8,'=IF(OR($B$12="BB",$B$12="BBSPA",$B$12="ROSPABB"),1,0)','потрібен пакет'),
@@ -99,7 +103,7 @@ def build(wb, data):
     for c in ('U','V'): ws.column_dimensions[c].hidden = True
     ws.sheet_view.showGridLines = False
     ws.sheet_properties.tabColor = GREEN_M
-    ws.print_area = 'A1:F29'
+    ws.print_area = 'A1:F30'
     ws.page_setup.fitToWidth = 1; ws.page_setup.fitToHeight = 0
     ws.sheet_properties.pageSetUpPr.fitToPage = True
     return ws

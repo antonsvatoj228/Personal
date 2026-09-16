@@ -18,8 +18,8 @@ PKG_DESC = ('=IF($B$5="RO","Лише проживання.",'
             'IF($B$5="ROSPA","Проживання + 1 фіксований SPA-візит на обʼєкт.",'
             'IF($B$5="ROSPABB","Проживання + сніданки за кількістю гостей + 1 SPA-візит на обʼєкт.","")))))')
 
-H = dict(ro_b='W', ro_v='X', maxg='Y', incl='Z', dopl='AA',
-         pkg_b='AB', pkg_v='AC', spa_b='AD', spa_v='AE', ok_b='AF', ok_v='AG')
+H = dict(ro_b='W', wm='X', ro_v='Y', maxg='Z', incl='AA', dopl='AB',
+         pkg_b='AC', pkg_v='AD', spa_b='AE', spa_v='AF', ok_b='AG', ok_v='AH')
 
 def build(wb, data):
     ws = wb.create_sheet('Прайс', 0)
@@ -119,7 +119,8 @@ def _rows(ws):
         out(ws,f'B{r}',None,band=band); out(ws,f'C{r}',None,band=band)
         ws[f'C{r}'].alignment = Alignment(horizontal='center')
         ws[f'{H["ro_b"]}{r}'] = f'=IF(OR($U$3=0,$A{r}=""),0,IFERROR(INDEX(БАЗА_ЦІНИ,MATCH($A{r},БАЗА_КАТ,0),$U$3),0))'
-        ws[f'{H["ro_v"]}{r}'] = f'=IF(OR($U$3=0,$A{r}=""),0,IFERROR(INDEX(БАЗА_ЦІНИ,MATCH($A{r},БАЗА_КАТ,0),$U$3+1),0))'
+        ws[f'{H["wm"]}{r}']   = f'=IF(OR($U$3=0,$A{r}=""),0,IFERROR(INDEX(МНОЖ_ВИХ,MATCH($A{r},МНОЖ_КАТ,0),$U$3),0))'
+        ws[f'{H["ro_v"]}{r}'] = f'={H["ro_b"]}{r}*{H["wm"]}{r}'
         ws[f'{H["maxg"]}{r}'] = f'=IF($A{r}="",0,IFERROR(INDEX(ДОВ_МАКС,{m}),0))'
         ws[f'{H["incl"]}{r}'] = f'=IF($A{r}="",0,IFERROR(INDEX(ДОВ_ВКЛ,{m}),0))'
         ws[f'{H["dopl"]}{r}'] = f'=IF($A{r}="",0,IFERROR(INDEX(ДОВ_ДОПЛ_ДОР,{m}),0))'
@@ -133,7 +134,7 @@ def _rows(ws):
                                   f'MATCH(INDEX(ДОВ_SPA,{m}),SPA_РІВЕНЬ,0),$U$3+1),0))')
         ws[f'{H["ok_b"]}{r}'] = (f'=IF(OR($A{r}="",{H["ro_b"]}{r}=0,AND($U$8=1,{H["pkg_b"]}{r}=0),'
                                  f'AND($U$9=1,{H["spa_b"]}{r}=0)),0,1)')
-        ws[f'{H["ok_v"]}{r}'] = (f'=IF(OR($A{r}="",{H["ro_v"]}{r}=0,AND($U$8=1,{H["pkg_v"]}{r}=0),'
+        ws[f'{H["ok_v"]}{r}'] = (f'=IF(OR($A{r}="",{H["ro_b"]}{r}=0,{H["wm"]}{r}=0,AND($U$8=1,{H["pkg_v"]}{r}=0),'
                                  f'AND($U$9=1,{H["spa_v"]}{r}=0)),0,1)')
         for k in H.values(): ws[f'{k}{r}'].font = f(9,color='6B7771')
 
@@ -157,5 +158,5 @@ def _rows(ws):
     for r in range(R0, R1+1):
         edge(ws,f'C{r}',right=True); edge(ws,f'{gl(WD1)}{r}',right=True); edge(ws,f'{gl(WE0)}{r}',left=True)
     edge(ws,f'C{R_HEAD}',right=True); edge(ws,f'{gl(WD1)}{R_HEAD}',right=True); edge(ws,f'{gl(WE0)}{R_HEAD}',left=True)
-    for c in range(HELP0, HELP0+13):
+    for c in range(HELP0, HELP0+14):
         ws.column_dimensions[gl(c)].hidden = True
