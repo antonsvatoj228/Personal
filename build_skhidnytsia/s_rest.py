@@ -8,14 +8,17 @@ from names_s import *
 # ═════════ КОНТРОЛЬ І ПОРІВНЯННЯ ═════════
 KR0 = 7; KR1 = KR0 + N_CAT - 1
 HK = ['ro_b','wm','ro_v','maxg','incl','ming','dopl_a','dopl_k','pa_b','pk_b','pa_v','pk_v','spa_b','spa_v','okd','oke']
-H1_0, H2_0 = 16, 34
+H1_0, H2_0 = 23, 41
 NTOT = '($D$4+$F$4)'
 def hc(start): return {k: gl(start+i) for i,k in enumerate(HK)}
 
 def build_control(wb, data):
     ws = wb.create_sheet('Контроль і порівняння')
     title(ws,'A1','ПОРІВНЯННЯ ТА КОНТРОЛЬ ПРАЙС-ЛИСТІВ — PHOENIX СХІДНИЦЯ','A1:I1')
-    for w,c in zip([30,13,13,13,13,12,12,11,11],'ABCDEFGHI'): ws.column_dimensions[c].width = w
+    for w,c in zip([30,13,13,13,13,12,12,11,11,13,12,13,12,12,12],
+                   ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O']):
+        ws.column_dimensions[c].width = w
+    ws.column_dimensions['P'].width = 3
     for addr,lab,val,fmt in (('B3','Прайс-лист 1','0сінь 26 0-10%',None),('D3','Тариф 1','Rack Rate',None),
                              ('F3','Прайс-лист 2','0сінь 26 20-30%',None),('H3','Тариф 2','Rack Rate',None),
                              ('B4','Пакет','RO',None),('D4','Дорослих',2,'0'),('F4','Дітей',0,'0')):
@@ -26,12 +29,18 @@ def build_control(wb, data):
     dvg = DataValidation(type='whole',operator='between',formula1='0',formula2='30',allow_blank=False,
                          showErrorMessage=True,errorTitle='Кількість гостей',error='Ціле число від 0 до 30.')
     ws.add_data_validation(dvg); dvg.add('D4'); dvg.add('F4')
-    banner(ws,'A5','Порівняння показує ціну за одну ніч без тварин — для буднього і вихідного дня одночасно. '
-                   'Значення поза місткістю категорії не показуються.','A5:I5',28)
     for i,h in enumerate(['Категорія','Прайс 1\nбудні','Прайс 1\nвихідні','Прайс 2\nбудні','Прайс 2\nвихідні',
-                          'Δ грн\nбудні','Δ грн\nвихідні','Δ %\nбудні','Δ %\nвихідні']):
+                          'Δ грн\nбудні','Δ грн\nвихідні','Δ %\nбудні','Δ %\nвихідні',
+                          'Прайс 1\nбуд.→вих.\nгрн','Прайс 1\nбуд.→вих.\n%',
+                          'Прайс 2\nбуд.→вих.\nгрн','Прайс 2\nбуд.→вих.\n%',
+                          'Δ спреду\nгрн','Δ спреду\nп.п.']):
         col_head(ws,f'{gl(i+1)}6',h)
     ws.row_dimensions[6].height = 34
+    for c0,c1,t in ((2,5,'ЦІНА ЗА НІЧ'),(6,9,'РІЗНИЦЯ МІЖ ПРАЙС-ЛИСТАМИ'),
+                    (10,13,'РІЗНИЦЯ БУДНІ → ВИХІДНІ В МЕЖАХ ПРАЙС-ЛИСТА'),(14,15,'ПОРІВНЯННЯ СПРЕДУ')):
+        block_head(ws,f'{gl(c0)}5',t,f'{gl(c0)}5:{gl(c1)}5')
+        ws[f'{gl(c0)}5'].alignment = Alignment(horizontal='center',vertical='center')
+    ws.row_dimensions[5].height = 20
     _kglob(ws); _khelp(ws,'$B$3','$D$3',H1_0); _khelp(ws,'$F$3','$H$3',H2_0)
     for i in range(N_CAT):
         r, dr, band = KR0+i, 5+i, i % 2 == 1
@@ -43,26 +52,32 @@ def build_control(wb, data):
         ws[f'G{r}'] = f'=IF(OR(C{r}="",E{r}=""),"",E{r}-C{r})'
         ws[f'H{r}'] = f'=IF(OR(B{r}="",D{r}="",B{r}=0),"",D{r}/B{r}-1)'
         ws[f'I{r}'] = f'=IF(OR(C{r}="",E{r}="",C{r}=0),"",E{r}/C{r}-1)'
-        for c in 'BCDEFG': out(ws,f'{c}{r}',None,MONEY,band=band)
-        for c in 'HI':     out(ws,f'{c}{r}',None,PCT,band=band)
-    for rng in (f'F{KR0}:G{KR1}', f'H{KR0}:I{KR1}'):
+        ws[f'J{r}'] = f'=IF(OR(B{r}="",C{r}=""),"",C{r}-B{r})'
+        ws[f'K{r}'] = f'=IF(OR(B{r}="",C{r}="",B{r}=0),"",C{r}/B{r}-1)'
+        ws[f'L{r}'] = f'=IF(OR(D{r}="",E{r}=""),"",E{r}-D{r})'
+        ws[f'M{r}'] = f'=IF(OR(D{r}="",E{r}="",D{r}=0),"",E{r}/D{r}-1)'
+        ws[f'N{r}'] = f'=IF(OR(J{r}="",L{r}=""),"",L{r}-J{r})'
+        ws[f'O{r}'] = f'=IF(OR(K{r}="",M{r}=""),"",M{r}-K{r})'
+        for c in 'BCDEFGJLN': out(ws,f'{c}{r}',None,MONEY,band=band)
+        for c in 'HIKMO':     out(ws,f'{c}{r}',None,PCT,band=band)
+    for rng in (f'F{KR0}:G{KR1}', f'H{KR0}:I{KR1}', f'N{KR0}:N{KR1}', f'O{KR0}:O{KR1}'):
         ws.conditional_formatting.add(rng, CellIsRule(operator='lessThan',formula=['0'],font=f(11,color=RED_INK)))
     _kcheck(ws)
-    for c in range(14, H2_0+len(HK)): ws.column_dimensions[gl(c)].hidden = True
+    for c in range(21, H2_0+len(HK)): ws.column_dimensions[gl(c)].hidden = True
     ws.freeze_panes = f'B{KR0}'; ws.sheet_view.showGridLines = False
     ws.sheet_properties.tabColor = GREEN_M
-    ws.print_area = f'A1:I{KR1}'; ws.print_title_rows = '1:6'
+    ws.print_area = f'A1:O{KR1}'; ws.print_title_rows = '1:6'
     ws.page_setup.orientation = 'landscape'; ws.page_setup.fitToWidth = 1; ws.page_setup.fitToHeight = 0
     ws.sheet_properties.pageSetUpPr.fitToPage = True
     return ws
 
 def _kglob(ws):
-    ws['N1'] = 'ТЕХНІЧНІ ДАНІ'; ws['N1'].font = f(10,True,'6B7771')
+    ws['U1'] = 'ТЕХНІЧНІ ДАНІ'; ws['U1'].font = f(10,True,'6B7771')
     for r,fml in ((3,"=IFERROR(MATCH('Прайс'!$B$3,ПЛ_РЯДОК,0),0)"),
                   (5,'=IF(OR($B$4="BB",$B$4="BBSPA",$B$4="ROSPABB"),1,0)'),
-                  (6,'=IF($N$5=0,"",IF($B$4="ROSPABB","BB",$B$4))'),
+                  (6,'=IF($U$5=0,"",IF($B$4="ROSPABB","BB",$B$4))'),
                   (7,'=IF(OR($B$4="ROSPA",$B$4="ROSPABB"),1,0)')):
-        ws[f'N{r}'] = fml; ws[f'N{r}'].font = f(9,color='6B7771')
+        ws[f'U{r}'] = fml; ws[f'U{r}'].font = f(9,color='6B7771')
 
 def _khelp(ws, pl, tar, start):
     c = hc(start); H = gl(start)
@@ -82,15 +97,15 @@ def _khelp(ws, pl, tar, start):
         ws[f'{c["dopl_a"]}{r}'] = f'=IF($A{r}="",0,IFERROR(INDEX(ДОВ_ДОПЛ_ДОР,{m}),0))'
         ws[f'{c["dopl_k"]}{r}'] = f'=IF($A{r}="",0,IFERROR(INDEX(ДОВ_ДОПЛ_ДІТ,{m}),0))'
         for key,day,off in (('pa_b','Будні',0),('pk_b','Будні',1),('pa_v','Вихідні',0),('pk_v','Вихідні',1)):
-            ws[f'{c[key]}{r}'] = (f'=IF(OR({H}$2=0,$N$5=0),0,IFERROR(INDEX(ПАКЕТИ_ЦІНИ,'
-                                  f'MATCH($N$6&"|{day}",ПАКЕТИ_КЛЮЧ,0),{H}$2+{off}),0))')
+            ws[f'{c[key]}{r}'] = (f'=IF(OR({H}$2=0,$U$5=0),0,IFERROR(INDEX(ПАКЕТИ_ЦІНИ,'
+                                  f'MATCH($U$6&"|{day}",ПАКЕТИ_КЛЮЧ,0),{H}$2+{off}),0))')
         for key,off in (('spa_b',0),('spa_v',1)):
-            ws[f'{c[key]}{r}'] = (f'=IF(OR({H}$2=0,$N$7=0,$A{r}=""),0,IFERROR(INDEX(SPA_ЦІНИ,'
+            ws[f'{c[key]}{r}'] = (f'=IF(OR({H}$2=0,$U$7=0,$A{r}=""),0,IFERROR(INDEX(SPA_ЦІНИ,'
                                   f'MATCH(INDEX(ДОВ_SPA,{m}),SPA_РІВЕНЬ,0),{H}$2+{off}),0))')
-        ws[f'{c["okd"]}{r}'] = (f'=IF(OR($A{r}="",{c["ro_b"]}{r}=0,AND($N$5=1,$D$4>0,{c["pa_b"]}{r}=0),'
-                                f'AND($N$5=1,$F$4>0,{c["pk_b"]}{r}=0),AND($N$7=1,{c["spa_b"]}{r}=0)),0,1)')
-        ws[f'{c["oke"]}{r}'] = (f'=IF(OR($A{r}="",{c["ro_b"]}{r}=0,{c["wm"]}{r}=0,AND($N$5=1,$D$4>0,{c["pa_v"]}{r}=0),'
-                                f'AND($N$5=1,$F$4>0,{c["pk_v"]}{r}=0),AND($N$7=1,{c["spa_v"]}{r}=0)),0,1)')
+        ws[f'{c["okd"]}{r}'] = (f'=IF(OR($A{r}="",{c["ro_b"]}{r}=0,AND($U$5=1,$D$4>0,{c["pa_b"]}{r}=0),'
+                                f'AND($U$5=1,$F$4>0,{c["pk_b"]}{r}=0),AND($U$7=1,{c["spa_b"]}{r}=0)),0,1)')
+        ws[f'{c["oke"]}{r}'] = (f'=IF(OR($A{r}="",{c["ro_b"]}{r}=0,{c["wm"]}{r}=0,AND($U$5=1,$D$4>0,{c["pa_v"]}{r}=0),'
+                                f'AND($U$5=1,$F$4>0,{c["pk_v"]}{r}=0),AND($U$7=1,{c["spa_v"]}{r}=0)),0,1)')
         for k in c.values(): ws[f'{k}{r}'].font = f(9,color='6B7771')
 
 def _kprice(start, wknd, r):
@@ -109,40 +124,40 @@ def _kprice(start, wknd, r):
             f'+{spa}{r}*(1-{H}$3*{H}$5))')
 
 def _kcheck(ws):
-    block_head(ws,'K3','КОНТРОЛЬ АКТИВНОГО ПРАЙС-ЛИСТА','K3:M3')
-    ws.column_dimensions['K'].width = 46; ws.column_dimensions['L'].width = 15; ws.column_dimensions['M'].width = 3
+    block_head(ws,'Q3','КОНТРОЛЬ АКТИВНОГО ПРАЙС-ЛИСТА','Q3:S3')
+    ws.column_dimensions['Q'].width = 46; ws.column_dimensions['R'].width = 15; ws.column_dimensions['S'].width = 3
     checks = [(4,'Незаповнені базові RO-ціни (заповнених категорій)',
-               f'=COUNTIF(КАТЕГОРІЇ,"<>")*2-COUNT(INDEX(БАЗА_ЦІНИ,0,$N$3))-COUNT(INDEX(БАЗА_ЦІНИ,0,$N$3+1))'),
+               f'=COUNTIF(КАТЕГОРІЇ,"<>")*2-COUNT(INDEX(БАЗА_ЦІНИ,0,$U$3))-COUNT(INDEX(БАЗА_ЦІНИ,0,$U$3+1))'),
               (5,'Незаповнені пакети BB',
-               '=4-COUNT(INDEX(ПАКЕТИ_ЦІНИ,1,$N$3),INDEX(ПАКЕТИ_ЦІНИ,1,$N$3+1),'
-               'INDEX(ПАКЕТИ_ЦІНИ,2,$N$3),INDEX(ПАКЕТИ_ЦІНИ,2,$N$3+1))'),
+               '=4-COUNT(INDEX(ПАКЕТИ_ЦІНИ,1,$U$3),INDEX(ПАКЕТИ_ЦІНИ,1,$U$3+1),'
+               'INDEX(ПАКЕТИ_ЦІНИ,2,$U$3),INDEX(ПАКЕТИ_ЦІНИ,2,$U$3+1))'),
               (6,'Дублікати назв прайс-листів',
                '=SUMPRODUCT((ПРАЙС_ЛИСТИ<>"")*(COUNTIF(ПРАЙС_ЛИСТИ,ПРАЙС_ЛИСТИ&"")>1))')]
     for r,lab,fml in checks:
-        label(ws,f'K{r}',lab); ws[f'L{r}'] = fml; out(ws,f'L{r}',None,'0')
-        ws.conditional_formatting.add(f'L{r}', CellIsRule(operator='greaterThan',formula=['0'],
+        label(ws,f'Q{r}',lab); ws[f'R{r}'] = fml; out(ws,f'R{r}',None,'0')
+        ws.conditional_formatting.add(f'R{r}', CellIsRule(operator='greaterThan',formula=['0'],
                                      fill=fill(RED_SOFT), font=f(11,True,RED_INK)))
-    ws['K8'] = '=IF(SUM($L$4:$L$6)=0,"ГОТОВО ДО ПУБЛІКАЦІЇ","ПОТРІБНЕ ЗАПОВНЕННЯ")'
-    ws['K8'].font = f(12,True); ws['K8'].alignment = Alignment(horizontal='center',vertical='center')
-    ws.merge_cells('K8:L8'); ws.row_dimensions[8].height = 26
-    ws.conditional_formatting.add('K8:L8', FormulaRule(formula=['$K$8="ГОТОВО ДО ПУБЛІКАЦІЇ"'],
+    ws['Q8'] = '=IF(SUM($R$4:$R$6)=0,"ГОТОВО ДО ПУБЛІКАЦІЇ","ПОТРІБНЕ ЗАПОВНЕННЯ")'
+    ws['Q8'].font = f(12,True); ws['Q8'].alignment = Alignment(horizontal='center',vertical='center')
+    ws.merge_cells('Q8:R8'); ws.row_dimensions[8].height = 26
+    ws.conditional_formatting.add('Q8:R8', FormulaRule(formula=['$Q$8="ГОТОВО ДО ПУБЛІКАЦІЇ"'],
                                   fill=fill('E1EFE7'), font=f(12,True,'2E6B4F'), stopIfTrue=True))
-    ws.conditional_formatting.add('K8:L8', FormulaRule(formula=['$K$8="ПОТРІБНЕ ЗАПОВНЕННЯ"'],
+    ws.conditional_formatting.add('Q8:R8', FormulaRule(formula=['$Q$8="ПОТРІБНЕ ЗАПОВНЕННЯ"'],
                                   fill=fill(RED_SOFT), font=f(12,True,RED_INK), stopIfTrue=True))
     info = [(10,'Пакет BBSPA заповнено?',
-             '=IF(COUNT(INDEX(ПАКЕТИ_ЦІНИ,3,$N$3),INDEX(ПАКЕТИ_ЦІНИ,3,$N$3+1),'
-             'INDEX(ПАКЕТИ_ЦІНИ,4,$N$3),INDEX(ПАКЕТИ_ЦІНИ,4,$N$3+1))=4,"так","ні — пакет недоступний")',None),
+             '=IF(COUNT(INDEX(ПАКЕТИ_ЦІНИ,3,$U$3),INDEX(ПАКЕТИ_ЦІНИ,3,$U$3+1),'
+             'INDEX(ПАКЕТИ_ЦІНИ,4,$U$3),INDEX(ПАКЕТИ_ЦІНИ,4,$U$3+1))=4,"так","ні — пакет недоступний")',None),
             (11,'Фіксований SPA заповнено? (ROSPA / ROSPABB)',
-             '=IF(COUNT(INDEX(SPA_ЦІНИ,1,$N$3),INDEX(SPA_ЦІНИ,1,$N$3+1),'
-             'INDEX(SPA_ЦІНИ,2,$N$3),INDEX(SPA_ЦІНИ,2,$N$3+1))=4,"так","ні — пакети недоступні")',None),
+             '=IF(COUNT(INDEX(SPA_ЦІНИ,1,$U$3),INDEX(SPA_ЦІНИ,1,$U$3+1),'
+             'INDEX(SPA_ЦІНИ,2,$U$3),INDEX(SPA_ЦІНИ,2,$U$3+1))=4,"так","ні — пакети недоступні")',None),
             (12,'Прайс-листів у моделі','=COUNTIF(ПРАЙС_ЛИСТИ,"<>")','0'),
             (13,'Категорій у моделі','=COUNTIF(КАТЕГОРІЇ,"<>")','0'),
             (14,'Крок округлення, грн','=ОКРУГЛЕННЯ',MONEY)]
     for r,lab,fml,fmt in info:
-        label(ws,f'K{r}',lab); ws[f'L{r}'] = fml; out(ws,f'L{r}',None,fmt,band=True)
-    label(ws,'K16','BBSPA і фіксований SPA не входять до чек-листа: пакети можуть бути свідомо не задіяні у сезоні.')
-    ws['K16'].font = f(9,it=True,color='6B7771')
-    ws['K16'].alignment = Alignment(wrap_text=True,vertical='top'); ws.merge_cells('K16:L17')
+        label(ws,f'Q{r}',lab); ws[f'R{r}'] = fml; out(ws,f'R{r}',None,fmt,band=True)
+    label(ws,'Q16','BBSPA і фіксований SPA не входять до чек-листа: пакети можуть бути свідомо не задіяні у сезоні.')
+    ws['Q16'].font = f(9,it=True,color='6B7771')
+    ws['Q16'].alignment = Alignment(wrap_text=True,vertical='top'); ws.merge_cells('Q16:R17')
 
 
 # ═════════ МОДЕЛЮВАННЯ ═════════
